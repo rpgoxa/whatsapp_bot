@@ -1,6 +1,6 @@
-# WhatsApp Bot — Beta v1.0
+# WhatsApp Bot — Beta v2.0
 
-An automated WhatsApp bot that runs in the background, monitors your groups, and handles several Islamic daily/weekly tasks.
+An automated WhatsApp bot that runs in the background, monitors your groups, and handles several Islamic daily/weekly tasks. No browser or phone required to be online once configured via **Green API**.
 
 ---
 
@@ -8,11 +8,10 @@ An automated WhatsApp bot that runs in the background, monitors your groups, and
 
 | Feature | How it works |
 |---|---|
-| **Prayer times forwarding** | Watches the source group every 15 seconds. When a message containing the exact Arabic prayer-times phrase appears, it downloads the attached image (if any) and forwards it to the destination group — image first, then text, matching the original layout. |
-| **Hijri calendar** | On startup, and once per day at midnight, it calls the Aladhan API for Beirut and checks today's Hijri date against 40+ hardcoded Shia Islamic events (all 12 Imam birthdays & martyrdoms, Ashura, Arbaeen, Mab'ath, Eid al-Ghadir, Eid al-Fitr, Eid al-Adha, Laylat al-Qadr nights, Mid-Sha'ban). Prints the event name to the console. |
-| **Dua Kumayl reminder** | Every Thursday at 8:00 PM — prints a reminder to the console (sending will be added in v2). |
-| **Dua Tawassul reminder** | Every Tuesday at 8:00 PM — prints a reminder to the console (sending will be added in v2). |
-| **Session saving** | Chrome saves your WhatsApp login to the `session/` folder so you only scan the QR code once. |
+| **Prayer times forwarding** | Polls the source group every 15 seconds. When a message containing the exact Arabic prayer-times phrase appears, it sends the attached image (if any) and text to the destination group via Green API. |
+| **Hijri calendar** | On startup, and once per day at midnight, it calls the Aladhan API for Beirut and checks today's Hijri date against 40+ hardcoded Shia Islamic events. Prints the event name to the console. |
+| **Dua Kumayl reminder** | Every Thursday at 8:00 PM — prints a reminder to the console (sending will be added). |
+| **Dua Tawassul reminder** | Every Tuesday at 8:00 PM — prints a reminder to the console (sending will be added). |
 
 ---
 
@@ -22,50 +21,46 @@ An automated WhatsApp bot that runs in the background, monitors your groups, and
 whatsapp-bot/
 │
 ├── index.py            ← START HERE  — runs the bot
-├── config.py           ← EDIT THIS   — your group names and settings
-├── get_groups.py       ← RUN ONCE    — lists your WhatsApp group names
+├── config.py           ← EDIT THIS   — your Green API credentials and group names
 ├── requirements.txt    ← INSTALL     — Python dependencies
 │
-├── bot/                ← Internal modules (you don't normally touch these)
-│   ├── __init__.py     — marks the folder as a Python package
-│   ├── calendar.py     — Hijri date logic + events dictionary
-│   ├── scheduler.py    — Thursday/Tuesday reminders + daily calendar job
-│   └── forwarder.py    — all Selenium / WhatsApp Web automation
-│
-└── session/            ← Auto-created on first run — Chrome login is saved here
-                           Do not delete this folder or you'll need to re-scan QR
+└── bot/                ← Internal modules (you don't normally touch these)
+    ├── __init__.py     — marks the folder as a Python package
+    ├── calendar.py     — Hijri date logic + events dictionary
+    ├── scheduler.py    — Thursday/Tuesday reminders + daily calendar job
+    └── forwarder.py    — API polling and forwarding logic
 ```
 
 ---
 
 ## Quick start
 
-### 1. Install Python dependencies
+### 1. Register for Green API
+1. Go to [Green-API.com](https://green-api.com/).
+2. Create an account and create an instance.
+3. Link your WhatsApp by scanning the QR code in your dashboard.
+4. Note your `INSTANCE_ID` and `API_TOKEN`.
+
+### 2. Install Python dependencies
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. Find your group names (first time only)
-```bash
-python get_groups.py
-```
-- Chrome opens and shows WhatsApp Web — scan the QR code with your phone.
-- The script prints a numbered list of every group and contact.
-- Note the exact names of the two groups you need.
-
 ### 3. Edit config.py
-Open `config.py` and fill in the group names exactly as they appear in WhatsApp:
+Open `config.py` and fill in your credentials and exact group names:
 ```python
-SOURCE_GROUP_NAME      = 'Prayer Times Group'   # group that posts prayer times
-DESTINATION_GROUP_NAME = 'Family Group'          # group to forward them to
+INSTANCE_ID            = '1234567890'
+API_TOKEN              = 'abc123def456ghi789jkl'
+
+SOURCE_GROUP_NAME      = 'Prayer Times Group'   # exact group that posts prayer times
+DESTINATION_GROUP_NAME = 'Family Group'          # exact group to forward them to
 ```
 
 ### 4. Run the bot
 ```bash
 python index.py
 ```
-- On the first run it will ask you to scan a QR code.
-- On every run after that it restores the saved session automatically.
+- The bot will automatically pull the chat IDs based on the group names you provided.
 - Press **Ctrl+C** to stop.
 
 ---
@@ -74,26 +69,16 @@ python index.py
 
 | What you want to change | File to open |
 |---|---|
-| Group names, scan interval, keyword | `config.py` |
+| Green API creds, Group names, scan interval, keyword | `config.py` |
 | Add/remove Islamic events from the calendar | `bot/calendar.py` → edit the `HIJRI_EVENTS` dict |
 | Change when duas are sent, or add new scheduled tasks | `bot/scheduler.py` → edit `setup_schedule()` |
-| Change how messages are detected or forwarded | `bot/forwarder.py` → edit `check_source_group()` or `forward_to_destination()` |
+| Change how messages are detected or forwarded | `bot/forwarder.py` → edit `check_source_group()` |
 | Change startup order | `index.py` |
-
----
-
-## Planned upgrades (v2)
-
-- [ ] **Send** Dua Kumayl and Dua Tawassul text to the group (not just print)
-- [ ] Send a greeting message on special Hijri occasions
-- [ ] Monitor **all groups** at once instead of only the source group
-- [ ] Web dashboard to configure everything without editing code
 
 ---
 
 ## Requirements
 
 - Python 3.8+
-- Google Chrome installed on this computer
 - Active internet connection
-- A WhatsApp account that can scan QR codes
+- A linked Green API account (Free or Developer plan should be sufficient)
