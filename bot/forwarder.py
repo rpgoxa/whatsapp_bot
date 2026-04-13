@@ -11,10 +11,12 @@ from collections import deque
 
 import requests
 import settings as config
+from bot.shia_events import ShiaEventsFeed
 
 _MAX_SEEN_IDS = 5000
 _seen_order: deque[str] = deque()
 _seen_set: set[str] = set()
+_events_feed = ShiaEventsFeed()
 
 # ============================================================
 # Helpers
@@ -65,6 +67,39 @@ def _maybe_strip_links(text: str) -> str:
     if not getattr(config, "STRIP_LINKS_FROM_TEXT", True):
         return text
     return _strip_urls(text)
+
+
+def _group_display_name() -> str:
+    if getattr(config, "SOURCE_GROUP_NAME", ""):
+        return config.SOURCE_GROUP_NAME.strip()
+    if getattr(config, "SOURCE_GROUP_CHAT_ID", ""):
+        return config.SOURCE_GROUP_CHAT_ID.strip()
+    return "Source group"
+
+
+def _build_branded_message(body: str, topic: str = "") -> str:
+    content = (body or "").strip()
+    if not getattr(config, "ENABLE_BRANDING", True):
+        return content
+
+    icon_main = getattr(config, "BRAND_ICON", "🕌")
+    icon_detail = getattr(config, "BRAND_DETAIL_ICON", "✦")
+    title = getattr(config, "BRAND_TITLE", "Shia 12 Lebanon Updates").strip()
+    group_link = getattr(config, "GROUP_LINK_URL", "").strip()
+    link_label = getattr(config, "GROUP_LINK_LABEL", "Join group").strip()
+    src_group = _group_display_name()
+    tag = topic.strip() if topic else "Update"
+
+    lines = [
+        f"{icon_main} *{title}*",
+        f"{icon_detail} {tag} | {_normalize_chat_id(src_group)}",
+    ]
+    if group_link:
+        lines.append(f"{icon_detail} {link_label}: {group_link}")
+    if content:
+        lines.append("")
+        lines.append(content)
+    return "\n".join(lines).strip()
 
 
 def _mime_to_ext(mime: str) -> str:
@@ -266,6 +301,29 @@ def send_contact_vcard(chat_id: str, display_name: str, vcard: str) -> bool:
         return False
 
 
+def _post_event_digest(dest_id: str) -> None:
+    if not _events_feed.should_poll():
+        return
+    _events_feed.mark_polled()
+    updates = _events_feed.get_updates()
+    if not updates:
+        return
+
+    for entry in updates:
+        title = (entry.get("title") or "").strip() or "New community event"
+        summary = (entry.get("summary") or "").strip()
+        summary = summary[:280].strip()
+        link = (entry.get("link") or "").strip()
+        lines = [f"🗓️ {title}"]
+        if summary:
+            lines.append(summary)
+        if link:
+            lines.append(f"Source: {link}")
+        text = _build_branded_message("\n".join(lines), topic="Shia Event")
+        if send_text_message(dest_id, text):
+            print("  [Events] sent 1 event digest.")
+
+
 # ============================================================
 # 3. Notification Queue  (instant delivery)
 # ============================================================
@@ -319,14 +377,14 @@ def mirror_message_as_new(body: dict, dest_id: str) -> bool:
         text = _maybe_strip_links(raw)
         if not text:
             return True  # only links / empty after strip — nothing to send
-        return send_text_message(dest_id, text)
+        return send_text_message(dest_id, _build_branded_message(text, topic="Text"))
 
     if mt == "extendedTextMessage":
         raw = (md.get("extendedTextMessageData") or {}).get("text", "")
         text = _maybe_strip_links(raw)
         if not text:
             return True
-        return send_text_message(dest_id, text)
+        return send_text_message(dest_id, _build_branded_message(text, topic="Message"))
 
     file_data = md.get("fileMessageData")
     if not file_data and mt == "imageMessage":
@@ -338,6 +396,7 @@ def mirror_message_as_new(body: dict, dest_id: str) -> bool:
             return False
         fname = file_data.get("fileName") or _default_file_name(mt, file_data.get("mimeType", ""))
         cap = _maybe_strip_links((file_data.get("caption") or "").strip())
+        cap = _build_branded_message(cap, topic="Media")
         return send_file_by_url(dest_id, dl, fname, cap)
 
     if mt == "locationMessage":
@@ -345,17 +404,26 @@ def mirror_message_as_new(body: dict, dest_id: str) -> bool:
         lat, lng = loc.get("latitude"), loc.get("longitude")
         if lat is None or lng is None:
             return False
-        return send_location(
+        ok = send_location(
             dest_id,
             float(lat),
             float(lng),
             str(loc.get("nameLocation") or ""),
             str(loc.get("address") or ""),
         )
+        if not ok:
+            return False
+        location_note = "📍 Shared location"
+        return send_text_message(dest_id, _build_branded_message(location_note, topic="Location"))
 
     if mt == "contactMessage":
         c = md.get("contactMessageData") or {}
-        return send_contact_vcard(dest_id, c.get("displayName") or "", c.get("vcard") or "")
+        ok = send_contact_vcard(dest_id, c.get("displayName") or "", c.get("vcard") or "")
+        if not ok:
+            return False
+        name = (c.get("displayName") or "").strip()
+        contact_note = f"👤 Contact shared: {name}" if name else "👤 Contact shared"
+        return send_text_message(dest_id, _build_branded_message(contact_note, topic="Contact"))
 
     print(
         f"  [Mirror] Unsupported typeMessage={mt!r} — "
@@ -414,9 +482,11 @@ def monitor_loop(src_id: str, dest_id: str) -> None:
 
     while True:
         try:
+            _post_event_digest(dest_id)
             notification = receive_notification()
 
             if notification is None:
+                time.sleep(1)
                 continue
 
             receipt_id = notification.get("receiptId")
