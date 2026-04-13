@@ -10,7 +10,7 @@ import time
 from collections import deque
 
 import requests
-import config
+import settings as config
 
 _MAX_SEEN_IDS = 5000
 _seen_order: deque[str] = deque()
@@ -23,7 +23,7 @@ _seen_set: set[str] = set()
 def _get_api_url(method: str) -> str:
     """Build a standard Green API endpoint URL."""
     if not config.INSTANCE_ID or not config.API_TOKEN:
-        raise ValueError("INSTANCE_ID or API_TOKEN is missing in config.py")
+        raise ValueError("INSTANCE_ID or API_TOKEN is missing in environment variables")
     base = getattr(config, "API_URL", "https://api.green-api.com").rstrip("/")
     return f"{base}/waInstance{config.INSTANCE_ID}/{method}/{config.API_TOKEN}"
 

@@ -3,7 +3,7 @@
 # ============================================================
 # Run:  python index.py
 #
-# Fill config.py with INSTANCE_ID, API_TOKEN, and exact group names.
+# Fill environment variables with INSTANCE_ID, API_TOKEN, and exact group names.
 
 import sys
 
@@ -20,7 +20,7 @@ def main():
         src_id, dest_id = init_green_api()
         if not src_id or not dest_id:
             print("\nError: Could not find one or both groups.")
-            print("Check API_URL / INSTANCE_ID / API_TOKEN and group names in config.py.")
+            print("Check API_URL / INSTANCE_ID / API_TOKEN and group names in environment variables.")
             sys.exit(1)
     except Exception as exc:
         print(f"\nFATAL: {exc}")
