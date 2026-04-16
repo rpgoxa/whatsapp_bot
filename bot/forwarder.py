@@ -16,6 +16,7 @@ from bot.dedupe import should_send_outgoing_text
 _MAX_SEEN_IDS = 5000
 _seen_order: deque[str] = deque()
 _seen_set: set[str] = set()
+_last_auth_error_log_at = 0.0
 
 # ============================================================
 # Helpers
@@ -27,6 +28,13 @@ def _get_api_url(method: str) -> str:
         raise ValueError("INSTANCE_ID or API_TOKEN is missing in environment variables")
     base = getattr(config, "API_URL", "https://api.green-api.com").rstrip("/")
     return f"{base}/waInstance{config.INSTANCE_ID}/{method}/{config.API_TOKEN}"
+
+
+def _mask_token(token: str) -> str:
+    token = token or ""
+    if len(token) <= 8:
+        return "*" * len(token)
+    return f"{token[:4]}...{token[-4:]}"
 
 
 def _normalize_chat_id(chat_id: str) -> str:
@@ -163,6 +171,15 @@ def get_group_id_by_name(group_name: str) -> str:
 def init_green_api():
     """Called on startup — returns (source_chat_id, dest_chat_id)."""
     print("\nConnecting to Green API to find groups...")
+    print(f"  API URL: {config.API_URL}")
+    print(f"  INSTANCE_ID: {config.INSTANCE_ID}")
+    print(f"  API_TOKEN: {_mask_token(config.API_TOKEN)} (len={len(config.API_TOKEN)})")
+    if getattr(config, "API_URL_HAD_WHITESPACE", False):
+        print("  [WARNING] API_URL had leading/trailing whitespace; trimmed automatically.")
+    if getattr(config, "INSTANCE_ID_HAD_WHITESPACE", False):
+        print("  [WARNING] INSTANCE_ID had leading/trailing whitespace; trimmed automatically.")
+    if getattr(config, "API_TOKEN_HAD_WHITESPACE", False):
+        print("  [WARNING] API_TOKEN had leading/trailing whitespace/newline; trimmed automatically.")
 
     src_raw = getattr(config, "SOURCE_GROUP_CHAT_ID", "") or ""
     dst_raw = getattr(config, "DESTINATION_GROUP_CHAT_ID", "") or ""
@@ -307,6 +324,14 @@ def receive_notification() -> dict | None:
     url = _get_api_url("receiveNotification")
     try:
         r = requests.get(url, timeout=25)
+        if r.status_code == 401:
+            global _last_auth_error_log_at
+            now = time.time()
+            if now - _last_auth_error_log_at >= 20:
+                print("  [API Error] receiveNotification: 401 Unauthorized.")
+                print("  [Hint] Verify API_URL / INSTANCE_ID / API_TOKEN and remove hidden spaces/newlines in env.")
+                _last_auth_error_log_at = now
+            return None
         r.raise_for_status()
         data = r.json()
         # Empty queue: API may return null, [], or {}
