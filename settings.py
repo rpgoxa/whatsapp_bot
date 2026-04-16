@@ -28,6 +28,11 @@ def _get_stripped(name: str, default: str = "") -> str:
     return os.getenv(name, default).strip()
 
 
+def _get_csv(name: str) -> list[str]:
+    raw = os.getenv(name, "")
+    return [part.strip() for part in raw.split(",") if part.strip()]
+
+
 # ---- Green API Credentials ----
 API_URL_RAW = os.getenv("API_URL", "https://api.green-api.com")
 INSTANCE_ID_RAW = os.getenv("INSTANCE_ID", "")
@@ -45,6 +50,8 @@ API_TOKEN_HAD_WHITESPACE = API_TOKEN_RAW != API_TOKEN
 SOURCE_GROUP_NAME = _get_stripped("SOURCE_GROUP_NAME")
 DESTINATION_GROUP_NAME = _get_stripped("DESTINATION_GROUP_NAME")
 SOURCE_GROUP_CHAT_ID = _get_stripped("SOURCE_GROUP_CHAT_ID")
+# Optional extra source groups (comma-separated), e.g. multiple channels mirrored to one destination.
+SOURCE_GROUP_CHAT_IDS = _get_csv("SOURCE_GROUP_CHAT_IDS")
 DESTINATION_GROUP_CHAT_ID = _get_stripped("DESTINATION_GROUP_CHAT_ID")
 GROUP_LINK_URL = _get_stripped("GROUP_LINK_URL")
 

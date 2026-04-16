@@ -168,6 +168,24 @@ def get_group_id_by_name(group_name: str) -> str:
     return ""
 
 
+def _mirror_source_id_set(primary_src_id: str) -> set[str]:
+    """All normalized source group ids that should be mirrored."""
+    raw_ids: list[str] = []
+    if primary_src_id:
+        raw_ids.append(primary_src_id)
+    for extra in getattr(config, "SOURCE_GROUP_CHAT_IDS", None) or []:
+        if extra:
+            raw_ids.append(extra)
+    return {_normalize_chat_id(x) for x in raw_ids if x}
+
+
+def _webhook_chat_id(body: dict) -> str:
+    """Best-effort chat id from Green API webhook body."""
+    sender = body.get("senderData") or {}
+    cid = sender.get("chatId") or body.get("chatId") or ""
+    return str(cid or "").strip()
+
+
 def init_green_api():
     """Called on startup — returns (source_chat_id, dest_chat_id)."""
     print("\nConnecting to Green API to find groups...")
@@ -206,6 +224,9 @@ def init_green_api():
 
     if src_id:
         print(f"  Resolved source chat id:     {src_id}")
+    extra_sources = getattr(config, "SOURCE_GROUP_CHAT_IDS", None) or []
+    if extra_sources:
+        print(f"  Extra mirror sources (SOURCE_GROUP_CHAT_IDS): {len(extra_sources)} id(s)")
     if dest_id:
         print(f"  Resolved destination chat id: {dest_id}")
 
@@ -249,6 +270,12 @@ def send_text_message_dedup(chat_id: str, text: str, source: str = "") -> bool:
     payload = (text or "").strip()
     if not payload:
         return True
+    # Scheduled/panel posts use dedupe; mirrored traffic must not be dropped when
+    # text matches a preset or a repeated message in the source window.
+    if source.startswith("mirror:"):
+        return send_text_message(chat_id, payload)
+    if not getattr(config, "ENABLE_OUTGOING_DEDUP", True):
+        return send_text_message(chat_id, payload)
     if not should_send_outgoing_text(payload):
         if source:
             print(f"  [Dedupe] skipped duplicate message from {source}.")
@@ -445,8 +472,11 @@ def process_notification(notification: dict, src_id: str, dest_id: str) -> None:
     if tw not in _MIRROR_WEBHOOKS:
         return
 
-    chat_id = body.get("senderData", {}).get("chatId", "")
-    if _normalize_chat_id(chat_id) != _normalize_chat_id(src_id):
+    chat_id = _webhook_chat_id(body)
+    allowed = _mirror_source_id_set(src_id)
+    if not allowed:
+        return
+    if _normalize_chat_id(chat_id) not in allowed:
         return
 
     msg_id = body.get("idMessage", "")
@@ -488,10 +518,11 @@ def monitor_loop(src_id: str, dest_id: str) -> None:
             body = notification.get("body") or {}
             tw = body.get("typeWebhook", "")
             if getattr(config, "MIRROR_DEBUG", True) and tw in _MIRROR_WEBHOOKS:
-                cid = (body.get("senderData") or {}).get("chatId", "")
+                cid = _webhook_chat_id(body)
+                allowed = _mirror_source_id_set(src_id)
                 print(
                     f"  [debug] queue: {tw} chatId={cid!r} "
-                    f"source={src_id!r} match={_normalize_chat_id(cid) == _normalize_chat_id(src_id)}"
+                    f"allowed_sources={len(allowed)} match={_normalize_chat_id(cid) in allowed}"
                 )
             process_notification(notification, src_id, dest_id)
 

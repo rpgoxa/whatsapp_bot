@@ -63,18 +63,19 @@ def create_panel_app(store, destination_chat_id: str, send_text_callable):
             <head>
               <meta charset="utf-8"/>
               <meta name="viewport" content="width=device-width, initial-scale=1"/>
-              <title>Majlis Control Panel</title>
+              <title>Shahid Haidar Doghali Panel</title>
               <style>
                 :root {
-                  --bg0: #0d0a10;
-                  --bg1: #1a0f1f;
-                  --bg2: #2a1219;
-                  --fire1: #ff6a00;
-                  --fire2: #ff2d55;
-                  --fire3: #ffd166;
+                  --bg0: #081311;
+                  --bg1: #0f241f;
+                  --bg2: #12352d;
+                  --gold1: #d4af37;
+                  --gold2: #f0d47a;
+                  --emerald1: #0f6b54;
+                  --emerald2: #1f8a70;
                   --text: #f6f6f9;
-                  --muted: #b7b0bf;
-                  --panel: rgba(20, 14, 24, 0.78);
+                  --muted: #b8d0c9;
+                  --panel: rgba(8, 22, 19, 0.76);
                   --border: rgba(255, 255, 255, 0.12);
                 }
                 * { box-sizing: border-box; }
@@ -84,13 +85,33 @@ def create_panel_app(store, destination_chat_id: str, send_text_callable):
                   font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
                   color: var(--text);
                   background:
-                    radial-gradient(circle at 10% 10%, rgba(255, 106, 0, 0.25), transparent 35%),
-                    radial-gradient(circle at 90% 20%, rgba(255, 45, 85, 0.2), transparent 40%),
-                    radial-gradient(circle at 50% 100%, rgba(255, 209, 102, 0.12), transparent 50%),
+                    radial-gradient(circle at 10% 10%, rgba(212, 175, 55, 0.22), transparent 35%),
+                    radial-gradient(circle at 90% 20%, rgba(31, 138, 112, 0.22), transparent 40%),
+                    radial-gradient(circle at 50% 100%, rgba(212, 175, 55, 0.12), transparent 50%),
                     linear-gradient(160deg, var(--bg0), var(--bg1) 55%, var(--bg2));
                   display: grid;
                   place-items: center;
                   padding: 24px;
+                  overflow: hidden;
+                }
+                body::before {
+                  content: "";
+                  position: fixed;
+                  inset: -20%;
+                  background:
+                    repeating-linear-gradient(
+                      45deg,
+                      transparent 0px,
+                      transparent 14px,
+                      rgba(212, 175, 55, 0.04) 14px,
+                      rgba(212, 175, 55, 0.04) 15px
+                    );
+                  animation: drift 26s linear infinite;
+                  pointer-events: none;
+                }
+                @keyframes drift {
+                  from { transform: translate3d(0, 0, 0); }
+                  to { transform: translate3d(-80px, -50px, 0); }
                 }
                 .card {
                   width: min(460px, 100%);
@@ -100,17 +121,39 @@ def create_panel_app(store, destination_chat_id: str, send_text_callable):
                   border-radius: 18px;
                   padding: 24px;
                   box-shadow: 0 20px 45px rgba(0, 0, 0, 0.45);
+                  position: relative;
+                  z-index: 1;
                 }
                 .title {
                   margin: 0 0 8px 0;
                   font-size: 1.55rem;
                   font-weight: 800;
                   letter-spacing: 0.4px;
-                  background: linear-gradient(90deg, var(--fire1), var(--fire2), var(--fire3));
+                  background: linear-gradient(90deg, var(--gold1), var(--gold2), #fff3c1);
                   -webkit-background-clip: text;
                   -webkit-text-fill-color: transparent;
                 }
                 .sub { margin: 0 0 18px 0; color: var(--muted); }
+                .brand-row {
+                  display: flex;
+                  align-items: center;
+                  gap: 10px;
+                  margin-bottom: 8px;
+                }
+                .icon-wrap {
+                  width: 42px;
+                  height: 42px;
+                  border-radius: 50%;
+                  display: grid;
+                  place-items: center;
+                  border: 1px solid rgba(212, 175, 55, 0.35);
+                  background: radial-gradient(circle at 30% 30%, rgba(212,175,55,.2), rgba(0,0,0,.1));
+                  animation: pulse 2.6s ease-in-out infinite;
+                }
+                @keyframes pulse {
+                  0%, 100% { transform: scale(1); box-shadow: 0 0 0 rgba(212,175,55,0.0); }
+                  50% { transform: scale(1.04); box-shadow: 0 0 18px rgba(212,175,55,0.35); }
+                }
                 .err {
                   margin: 0 0 14px 0;
                   padding: 10px 12px;
@@ -136,16 +179,24 @@ def create_panel_app(store, destination_chat_id: str, send_text_callable):
                   padding: 12px 14px;
                   font-weight: 800;
                   cursor: pointer;
-                  color: #1b0e13;
-                  background: linear-gradient(95deg, var(--fire3), var(--fire1), var(--fire2));
-                  box-shadow: 0 8px 24px rgba(255, 106, 0, 0.35);
+                  color: #0f201b;
+                  background: linear-gradient(95deg, var(--gold2), var(--gold1), #f7e6aa);
+                  box-shadow: 0 8px 24px rgba(212, 175, 55, 0.35);
                 }
               </style>
             </head>
             <body>
               <div class="card">
-                <h1 class="title">Shia Majlis Panel</h1>
-                <p class="sub">Secure scheduler control for your Railway deployment.</p>
+                <div class="brand-row">
+                  <div class="icon-wrap">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path d="M14.7 4.8a7.2 7.2 0 1 0 4.5 12.8 6 6 0 1 1-4.5-12.8Z" fill="#d4af37"/>
+                      <circle cx="17.8" cy="8.2" r="1.2" fill="#f0d47a"/>
+                    </svg>
+                  </div>
+                  <h1 class="title">Shahid Haidar Doghali Panel</h1>
+                </div>
+                <p class="sub">Secure Islamic scheduler control for your Railway deployment.</p>
                 {% if error %}<p class="err">{{ error }}</p>{% endif %}
                 <form method="post">
                   <label>Email</label>
@@ -179,17 +230,16 @@ def create_panel_app(store, destination_chat_id: str, send_text_callable):
             <head>
               <meta charset="utf-8"/>
               <meta name="viewport" content="width=device-width, initial-scale=1"/>
-              <title>Majlis Scheduler</title>
+              <title>Shahid Haidar Doghali Panel</title>
               <style>
                 :root {
-                  --bg0: #0d0a10;
-                  --bg1: #1a0f1f;
-                  --bg2: #2a1219;
-                  --panel: rgba(23, 17, 29, 0.75);
-                  --panel-strong: rgba(20, 14, 26, 0.92);
-                  --fire1: #ff6a00;
-                  --fire2: #ff2d55;
-                  --fire3: #ffd166;
+                  --bg0: #081311;
+                  --bg1: #0f241f;
+                  --bg2: #12352d;
+                  --panel: rgba(10, 24, 21, 0.78);
+                  --panel-strong: rgba(12, 28, 24, 0.92);
+                  --gold1: #d4af37;
+                  --gold2: #f0d47a;
                   --ok: #50d890;
                   --muted: #b7b0bf;
                   --line: rgba(255, 255, 255, 0.14);
@@ -201,11 +251,20 @@ def create_panel_app(store, destination_chat_id: str, send_text_callable):
                   color: var(--text);
                   font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
                   background:
-                    radial-gradient(circle at 0% 0%, rgba(255,106,0,.22), transparent 30%),
-                    radial-gradient(circle at 100% 0%, rgba(255,45,85,.2), transparent 35%),
-                    radial-gradient(circle at 50% 100%, rgba(255,209,102,.12), transparent 50%),
+                    radial-gradient(circle at 0% 0%, rgba(212,175,55,.20), transparent 30%),
+                    radial-gradient(circle at 100% 0%, rgba(31,138,112,.2), transparent 35%),
+                    radial-gradient(circle at 50% 100%, rgba(212,175,55,.10), transparent 50%),
                     linear-gradient(160deg, var(--bg0), var(--bg1) 55%, var(--bg2));
                   min-height: 100vh;
+                }
+                body::before {
+                  content: "";
+                  position: fixed;
+                  inset: 0;
+                  background:
+                    linear-gradient(120deg, transparent 0 46%, rgba(212,175,55,.04) 46% 47%, transparent 47% 100%),
+                    linear-gradient(60deg, transparent 0 46%, rgba(212,175,55,.03) 46% 47%, transparent 47% 100%);
+                  pointer-events: none;
                 }
                 .wrap { max-width: 1200px; margin: 0 auto; padding: 24px; }
                 .hero {
@@ -226,11 +285,26 @@ def create_panel_app(store, destination_chat_id: str, send_text_callable):
                   font-size: 1.8rem;
                   font-weight: 850;
                   letter-spacing: .4px;
-                  background: linear-gradient(90deg, var(--fire3), var(--fire1), var(--fire2));
+                  background: linear-gradient(90deg, var(--gold2), var(--gold1), #fff3c1);
                   -webkit-background-clip: text;
                   -webkit-text-fill-color: transparent;
                 }
                 .sub { margin: 4px 0 0 0; color: var(--muted); }
+                .brand {
+                  display: flex;
+                  align-items: center;
+                  gap: 12px;
+                }
+                .brand svg {
+                  width: 34px;
+                  height: 34px;
+                  filter: drop-shadow(0 0 10px rgba(212,175,55,.3));
+                  animation: float 3s ease-in-out infinite;
+                }
+                @keyframes float {
+                  0%, 100% { transform: translateY(0); }
+                  50% { transform: translateY(-3px); }
+                }
                 .logout {
                   color: #ffe2b8;
                   text-decoration: none;
@@ -291,9 +365,9 @@ def create_panel_app(store, destination_chat_id: str, send_text_callable):
                   padding: 10px 12px;
                   font-weight: 800;
                   cursor: pointer;
-                  color: #180e12;
-                  background: linear-gradient(90deg, var(--fire3), var(--fire1), var(--fire2));
-                  box-shadow: 0 8px 22px rgba(255, 106, 0, .3);
+                  color: #10221d;
+                  background: linear-gradient(90deg, var(--gold2), var(--gold1), #f7e6aa);
+                  box-shadow: 0 8px 22px rgba(212, 175, 55, .3);
                 }
                 .btn.small { padding: 7px 9px; font-size: .86rem; box-shadow: none; }
                 .btn.secondary {
@@ -335,9 +409,15 @@ def create_panel_app(store, destination_chat_id: str, send_text_callable):
             <body>
               <div class="wrap">
                 <div class="hero">
-                  <div>
-                    <h1 class="title">Shia Majlis Scheduler</h1>
-                    <p class="sub">Railway-ready control panel for timing, formatting, and sending posts.</p>
+                  <div class="brand">
+                    <svg viewBox="0 0 64 64" fill="none" aria-hidden="true">
+                      <path d="M39 10c-9.4 0-17 7.6-17 17s7.6 17 17 17c6 0 11.3-3.1 14.3-7.7-2 .7-4.1 1-6.3 1-10.6 0-19.3-8.7-19.3-19.3 0-2.2.4-4.3 1-6.3A16.9 16.9 0 0 0 39 10Z" fill="#d4af37"/>
+                      <circle cx="46.5" cy="20" r="2.2" fill="#f0d47a"/>
+                    </svg>
+                    <div>
+                      <h1 class="title">Shahid Haidar Doghali Panel</h1>
+                      <p class="sub">Railway-ready control panel for timing, formatting, and sending posts.</p>
+                    </div>
                   </div>
                   <a class="logout" href="/logout">Logout</a>
                 </div>

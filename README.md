@@ -4,7 +4,7 @@ This project mirrors WhatsApp messages from one group to another using [Green AP
 
 ## What it does
 
-- Mirrors new messages from source group to destination group.
+- Mirrors new messages from one or more source groups to a destination group (`SOURCE_GROUP_CHAT_ID` plus optional `SOURCE_GROUP_CHAT_IDS`).
 - Appends your group link to outgoing messages (optional).
 - Runs an admin panel with login on Railway.
 - Lets you create, enable/disable, delete, and send-now scheduled messages.
@@ -49,7 +49,7 @@ Keep sensitive values in env only:
 - `API_URL`
 - `INSTANCE_ID`
 - `API_TOKEN`
-- `SOURCE_GROUP_NAME` or `SOURCE_GROUP_CHAT_ID`
+- `SOURCE_GROUP_NAME` or `SOURCE_GROUP_CHAT_ID` (and optional `SOURCE_GROUP_CHAT_IDS` for multiple sources)
 - `DESTINATION_GROUP_NAME` or `DESTINATION_GROUP_CHAT_ID`
 - `GROUP_LINK_URL`
 - `MIRROR_DEBUG`
